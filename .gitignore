@@ -1,0 +1,5 @@
+# Ignore every file that starts with "input_", in every directory
+**/*input_*
+
+# Ignore .DS_Store files
+**/.DS_Store
