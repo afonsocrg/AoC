@@ -39,7 +39,7 @@ fn part_2(input: Vec<u128>) -> u128 {
     let mut cache = HashMap::new();
     input
         .iter()
-        .map(|n| expand_number_rec(*n, 10000, &mut cache))
+        .map(|n| expand_number_rec(*n, 75, &mut cache))
         .sum()
 }
 
