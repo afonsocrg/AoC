@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::time::Instant;
 
 #[derive(Debug)]
 struct Equation {
@@ -7,16 +8,26 @@ struct Equation {
     right: Vec<u64>,
 }
 
+enum Op {
+    Concat,
+    Mul,
+    Add,
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let input_file = args.get(1).expect("Input file is required");
     let input = parse_input(input_file);
 
-    if args.contains(&"--part-2".to_string()) {
-        println!("{:?}", part_2(input));
+    let now = Instant::now();
+    let result = if args.contains(&"--part-2".to_string()) {
+        part_2(input)
     } else {
-        println!("{:?}", part_1(input));
-    }
+        part_1(input)
+    };
+    let elapsed = now.elapsed();
+    println!("{:?}", result);
+    println!("Executed in {:?}", elapsed);
 }
 
 fn parse_input(input_file: &str) -> Vec<Equation> {
@@ -44,7 +55,7 @@ fn parse_input(input_file: &str) -> Vec<Equation> {
 fn part_1(input: Vec<Equation>) -> u64 {
     input
         .iter()
-        .filter(|e| can_be_solved(e))
+        .filter(|e| is_solvable(e.result, e.right[0], &e.right[1..], false))
         .map(|e| e.result)
         .sum()
 }
@@ -52,217 +63,39 @@ fn part_1(input: Vec<Equation>) -> u64 {
 fn part_2(input: Vec<Equation>) -> u64 {
     input
         .iter()
-        .filter(|e| can_be_solved_2(e))
+        .filter(|e| is_solvable(e.result, e.right[0], &e.right[1..], true))
         .map(|e| e.result)
         .sum()
 }
 
-#[derive(Debug, PartialEq)]
-enum SearchStatus {
-    Correct,
-    Incorrect,
-    TooHigh,
-    TooLow, // Used only when no
-}
-
-fn is_solvable_recursive(target: u64, current: u64, numbers: &[u64], depth: usize) -> SearchStatus {
-    // print_indent(depth);
-    // println!(
-    //     "Target: {:?}, Current: {:?}, Numbers: {:?}",
-    //     target, current, numbers
-    // );
-
+fn is_solvable(target: u64, current: u64, numbers: &[u64], try_concat: bool) -> bool {
     if current > target {
-        // print_indent(depth);
-        // println!("Current is too high");
-        return SearchStatus::TooHigh;
+        return false;
     }
 
     if numbers.len() == 0 {
-        // print_indent(depth);
-        // println!("No numbers left");
-
-        let result = if current == target {
-            SearchStatus::Correct
-        } else if current < target {
-            // We may not need this case, because we're checking
-            // if current > target above
-            SearchStatus::TooLow
-        } else {
-            SearchStatus::TooHigh
-        };
-
-        // print_indent(depth);
-        // println!("Result: {:?}", result);
-        return result;
-    }
-
-    let n = numbers.get(0).expect("Failed to get number");
-    let new_current_mul = current * n;
-    // print_indent(depth);
-    // println!("{} * {} = {}", current, n, new_current_mul);
-
-    if new_current_mul > target {
-        // print_indent(depth);
-        // println!("Value is too high...");
-    } else {
-        let mul_result = is_solvable_recursive(target, new_current_mul, &numbers[1..], depth + 1);
-
-        // print_indent(depth);
-        // println!("Got result from search: {:?}", mul_result);
-
-        if mul_result == SearchStatus::Correct {
-            // if mul_result == SearchStatus::Correct || mul_result == SearchStatus::TooLow {
-            // print_indent(depth);
-            // println!("Returning result...");
-            return mul_result;
-        }
-    }
-
-    // print_indent(depth);
-    // println!("Trying addition...");
-    let new_current_add = current + n;
-    // print_indent(depth);
-    // println!("{} + {} = {}", current, n, new_current_add);
-
-    let add_result = is_solvable_recursive(target, new_current_add, &numbers[1..], depth + 1);
-
-    // print_indent(depth);
-    // println!("Add result: {:?}", add_result);
-
-    if add_result == SearchStatus::Correct {
-        // if add_result == SearchStatus::Correct || add_result == SearchStatus::TooHigh {
-        return add_result;
-    }
-
-    SearchStatus::Incorrect
-}
-
-fn is_solvable_recursive_2(
-    target: u64,
-    current: u64,
-    numbers: &[u64],
-    depth: usize,
-) -> SearchStatus {
-    // print_indent(depth);
-    // println!(
-    //     "Target: {:?}, Current: {:?}, Numbers: {:?}",
-    //     target, current, numbers
-    // );
-
-    if current > target {
-        // print_indent(depth);
-        // println!("Current is too high");
-        return SearchStatus::TooHigh;
-    }
-
-    if numbers.len() == 0 {
-        // print_indent(depth);
-        // println!("No numbers left");
-
-        let result = if current == target {
-            SearchStatus::Correct
-        } else if current < target {
-            // We may not need this case, because we're checking
-            // if current > target above
-            SearchStatus::TooLow
-        } else {
-            SearchStatus::TooHigh
-        };
-
-        // print_indent(depth);
-        // println!("Result: {:?}", result);
-        return result;
+        return current == target;
     }
 
     let n = numbers.get(0).expect("Failed to get number");
 
-    // Try concatenating
-    // print_indent(depth);
-    // println!("Trying concatenation...");
-    let new_current_concat = concatenate_numbers(current, *n);
-    // print_indent(depth);
-    // println!("{} || {} = {}", current, n, new_current_concat);
-    if new_current_concat > target {
-        // print_indent(depth);
-        // println!("Concatenation is too high...");
+    let ops: Vec<Op> = if try_concat {
+        vec![Op::Concat, Op::Mul, Op::Add]
     } else {
-        let concat_result =
-            is_solvable_recursive_2(target, new_current_concat, &numbers[1..], depth + 1);
-        if concat_result == SearchStatus::Correct {
-            // if concat_result == SearchStatus::Correct || concat_result == SearchStatus::TooLow {
-            // print_indent(depth);
-            // println!("Returning result...");
-            return concat_result;
+        vec![Op::Mul, Op::Add]
+    };
+
+    for op in ops {
+        let new_curr = match op {
+            Op::Concat => (current * 10_u64.pow(n.to_string().len() as u32)) + n,
+            Op::Mul => current * n,
+            Op::Add => current + n,
+        };
+
+        if new_curr <= target && is_solvable(target, new_curr, &numbers[1..], try_concat) {
+            return true;
         }
     }
 
-    // Try multiplying
-    // print_indent(depth);
-    // println!("Trying multiplication...");
-    let new_current_mul = current * n;
-    // print_indent(depth);
-    // println!("{} * {} = {}", current, n, new_current_mul);
-
-    if new_current_mul > target {
-        // print_indent(depth);
-        // println!("Value is too high...");
-    } else {
-        let mul_result = is_solvable_recursive_2(target, new_current_mul, &numbers[1..], depth + 1);
-
-        // print_indent(depth);
-        // println!("Got result from search: {:?}", mul_result);
-
-        if mul_result == SearchStatus::Correct {
-            // if mul_result == SearchStatus::Correct || mul_result == SearchStatus::TooLow {
-            // print_indent(depth);
-            // println!("Returning result...");
-            return mul_result;
-        }
-    }
-
-    // print_indent(depth);
-    // println!("Trying addition...");
-    let new_current_add = current + n;
-    // print_indent(depth);
-    // println!("{} + {} = {}", current, n, new_current_add);
-
-    let add_result = is_solvable_recursive_2(target, new_current_add, &numbers[1..], depth + 1);
-
-    // print_indent(depth);
-    // println!("Add result: {:?}", add_result);
-
-    if add_result == SearchStatus::Correct {
-        // if add_result == SearchStatus::Correct || add_result == SearchStatus::TooHigh {
-        return add_result;
-    }
-
-    SearchStatus::Incorrect
-}
-
-fn concatenate_numbers(n1: u64, n2: u64) -> u64 {
-    (n1 * 10_u64.pow(n2.to_string().len() as u32)) + n2
-}
-
-fn can_be_solved(equation: &Equation) -> bool {
-    // println!("=============== Testing equation ===============");
-    // println!("{:?}: {:?}", equation.result, equation.right);
-    let result = is_solvable_recursive(equation.result, equation.right[0], &equation.right[1..], 1)
-        == SearchStatus::Correct;
-    // println!(">>>>>>>>>>>>: {:?}", result);
-    result
-}
-
-fn can_be_solved_2(equation: &Equation) -> bool {
-    // println!("=============== Testing equation ===============");
-    // println!("{:?}: {:?}", equation.result, equation.right);
-    let result =
-        is_solvable_recursive_2(equation.result, equation.right[0], &equation.right[1..], 1)
-            == SearchStatus::Correct;
-    // println!(">>>>>>>>>>>>: {:?}", result);
-    result
-}
-
-fn print_indent(depth: usize) {
-    print!("{}", "\t".repeat(depth));
+    false
 }
