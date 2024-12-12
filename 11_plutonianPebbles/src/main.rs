@@ -19,7 +19,7 @@ fn main() {
     println!("Executed in {:?}", elapsed);
 }
 
-fn parse_input(input_file: &str) -> Vec<u128> {
+fn parse_input(input_file: &str) -> Vec<u64> {
     fs::read_to_string(input_file)
         .expect("Failed to read input file")
         .split_whitespace()
@@ -27,54 +27,54 @@ fn parse_input(input_file: &str) -> Vec<u128> {
         .collect()
 }
 
-fn part_1(input: Vec<u128>) -> u128 {
+fn part_1(input: Vec<u64>) -> u64 {
     let mut cache = HashMap::new();
     input
         .iter()
-        .map(|n| expand_number_rec(*n, 25, &mut cache))
+        .map(|n| expand_number(*n, 25, &mut cache))
         .sum()
 }
 
-fn part_2(input: Vec<u128>) -> u128 {
+fn part_2(input: Vec<u64>) -> u64 {
     let mut cache = HashMap::new();
     input
         .iter()
-        .map(|n| expand_number_rec(*n, 75, &mut cache))
+        .map(|n| expand_number(*n, 75, &mut cache))
         .sum()
 }
 
-fn expand_number_rec(n: u128, depth: u128, cache: &mut HashMap<(u128, u128), u128>) -> u128 {
-    if depth == 0 {
+fn expand_number(n: u64, height: usize, cache: &mut HashMap<(u64, usize), u64>) -> u64 {
+    if height == 0 {
         return 1;
     }
 
-    if let Some(cached) = cache.get(&(n, depth)) {
+    if let Some(cached) = cache.get(&(n, height)) {
         return *cached;
     }
 
-    let result = if depth == 0 {
+    let result = if height == 0 {
         1
     } else {
         if n == 0 {
-            expand_number_rec(1, depth - 1, cache)
+            expand_number(1, height - 1, cache)
         } else {
             let n_digits = get_n_digits(n);
             if n_digits % 2 == 0 {
-                let div = u128::pow(10, (n_digits / 2).try_into().unwrap());
+                let div = u64::pow(10, (n_digits / 2).try_into().unwrap());
                 let left = n / div;
                 let right = n % div;
-                expand_number_rec(left, depth - 1, cache)
-                    + expand_number_rec(right, depth - 1, cache)
+                expand_number(left, height - 1, cache)
+                    + expand_number(right, height - 1, cache)
             } else {
-                expand_number_rec(n * 2024, depth - 1, cache)
+                expand_number(n * 2024, height - 1, cache)
             }
         }
     };
-    cache.insert((n, depth), result);
+    cache.insert((n, height), result);
     result
 }
 
-fn get_n_digits(mut n: u128) -> u128 {
+fn get_n_digits(mut n: u64) -> u8 {
     let mut n_digits = 0;
     while n >= 1 {
         n /= 10;
@@ -85,7 +85,7 @@ fn get_n_digits(mut n: u128) -> u128 {
 
 // // This was fast enough for part 1, but not for part 2...
 // // We need memoization
-// fn expand_input(input: &mut LinkedList<u128>, n_iterations: usize) -> usize {
+// fn expand_input(input: &mut LinkedList<u32>, n_iterations: usize) -> usize {
 //     for i in 0..n_iterations {
 //         let mut cursor = input.cursor_front_mut();
 //         while let Some(item) = cursor.current() {
@@ -94,7 +94,7 @@ fn get_n_digits(mut n: u128) -> u128 {
 //             } else {
 //                 let n_digits = get_n_digits(*item);
 //                 if n_digits % 2 == 0 {
-//                     let div = u128::pow(10, n_digits / 2);
+//                     let div = u32::pow(10, n_digits / 2);
 //                     let left = *item / div;
 //                     let right = *item % div;
 //                     cursor.insert_before(left);
