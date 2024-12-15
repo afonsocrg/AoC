@@ -1,6 +1,8 @@
 use std::env;
 use std::fs;
 use std::time::Instant;
+// use std::fs::File;
+// use std::io::Write;
 
 const WALL: char = '#';
 const ROBOT: char = '@';
@@ -257,4 +259,69 @@ fn move_rec(map: &mut Vec<Vec<char>>, (i, j): (i32, i32), (di, dj): (i32, i32)) 
 //     map[new_i as usize][new_j as usize] = ROBOT;
 
 //     (new_i, new_j)
+// }
+
+// Below is the code used to save intermediate states to some files,
+// I just record states where the robot changed position, and remove
+// portions of the walk where the robot goes to an already visited position
+// without moving any box.
+
+// #[derive(Clone)]
+// struct State {
+//     map: Vec<Vec<char>>,
+//     robot_position: (i32, i32),
+// }
+
+// fn solve_trace_states(mut map: Vec<Vec<char>>, moves: Vec<char>, tracked_char: char) -> i32 {
+//     let mut robot_position = get_robot_position(&map);
+
+//     // Simulate the moves
+//     let mut iteration = 0;
+//     print_map_to_file(&map, format!("gifs/part2/map_{:06}.txt", iteration));
+//     let mut buffered_states: Vec<State> = vec![];
+//     moves.iter().for_each(|m| {
+//         let prev_map = map.clone();
+//         let new_position = move_robot(&mut map, robot_position, *m);
+//         if new_position != robot_position {
+//             if prev_map[new_position.0 as usize][new_position.1 as usize] == OBJECT_LEFT
+//                 || prev_map[new_position.0 as usize][new_position.1 as usize] == OBJECT_RIGHT
+//                 || prev_map[new_position.0 as usize][new_position.1 as usize] == OBJECT
+//             {
+//                 buffered_states.push(State {
+//                     map: map.clone(),
+//                     robot_position: new_position,
+//                 });
+//                 for s in buffered_states.iter() {
+//                     iteration += 1;
+//                     print_map_to_file(&s.map, format!("gifs/part2/map_{:06}.txt", iteration));
+//                 }
+//                 buffered_states.clear();
+//             } else {
+//                 // Check if there is a previous state with the current position
+//                 // and clear the buffer from that state onwards
+//                 let mut i = 0;
+//                 while i < buffered_states.len() {
+//                     if buffered_states[i].robot_position == new_position {
+//                         buffered_states = buffered_states[..i].to_vec();
+//                         break;
+//                     }
+//                     i += 1;
+//                 }
+//                 buffered_states.push(State {
+//                     map: map.clone(),
+//                     robot_position: new_position,
+//                 });
+//             }
+//         }
+//         robot_position = new_position;
+//     });
+// }
+
+// fn print_map_to_file(map: &Vec<Vec<char>>, filename: String) {
+//     let mut file = File::create(filename).expect("Failed to create file");
+//     map.iter().for_each(|row| {
+//         file.write_all(row.iter().collect::<String>().as_bytes())
+//             .expect("Failed to write data");
+//         file.write_all(b"\n").expect("Failed to write data");
+//     });
 // }
