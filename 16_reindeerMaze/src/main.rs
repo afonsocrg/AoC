@@ -169,7 +169,7 @@ fn a_star(maze: &Maze, find_all: bool) -> Vec<Box<State>> {
             }
         }
 
-        for mut next_state in expand_state(maze, &state) {
+        for mut next_state in expand_state(maze, &state, true) {
             // We know that the next_state will only reach the goal if it has a heuristic value
             if let Some(h) = heuristic_cache.get(&next_state.position) {
                 next_state.h = *h;
@@ -183,7 +183,7 @@ fn a_star(maze: &Maze, find_all: bool) -> Vec<Box<State>> {
 
 // Returns all *useful* neighbors of the current state, i.e. the next states that
 // have at least one bifurcation
-fn expand_state_rec(maze: &Maze, state: &Box<State>, lookahead: bool) -> Vec<Box<State>> {
+fn expand_state(maze: &Maze, state: &Box<State>, lookahead: bool) -> Vec<Box<State>> {
     let mut next_states = Vec::new();
     for m in [Move::Forward, Move::TurnLeft, Move::TurnRight] {
         let mut next_state = next_state(state, m);
@@ -196,10 +196,10 @@ fn expand_state_rec(maze: &Maze, state: &Box<State>, lookahead: bool) -> Vec<Box
             // Expand next state while it only has one option
             // If we find a dead end, do not include that next state
             // If we find a bifurcation, include that state
-            let mut lookahead_states = expand_state_rec(maze, &next_state, false);
+            let mut lookahead_states = expand_state(maze, &next_state, false);
             while next_state.position != maze.end && lookahead_states.len() == 1 {
                 next_state = lookahead_states.pop().unwrap();
-                lookahead_states = expand_state_rec(maze, &next_state, false);
+                lookahead_states = expand_state(maze, &next_state, false);
             }
             if lookahead_states.len() == 0 {
                 // We found a dead end
@@ -209,10 +209,6 @@ fn expand_state_rec(maze: &Maze, state: &Box<State>, lookahead: bool) -> Vec<Box
         next_states.push(next_state);
     }
     next_states
-}
-
-fn expand_state(maze: &Maze, state: &Box<State>) -> Vec<Box<State>> {
-    expand_state_rec(maze, state, true)
 }
 
 // Returns the state resulting from applying the move to the given state
